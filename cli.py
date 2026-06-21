@@ -15,6 +15,26 @@ from pathlib import Path
 
 import yaml
 
+# pyyaml may be installed without __init__.py (broken partial install);
+# fall back to the Loader class directly.
+try:
+    _has_safe_load = hasattr(yaml, "safe_load")
+except Exception:
+    _has_safe_load = False
+
+
+def _yaml_load(stream):
+    """Load YAML, working around broken PyYAML installs."""
+    if _has_safe_load:
+        return yaml.safe_load(stream)
+    else:
+        from yaml.loader import SafeLoader
+        loader = SafeLoader(stream)
+        try:
+            return loader.get_single_data()
+        finally:
+            loader.dispose()
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "plugin"))
 from gate import ConstraintEngine
 
@@ -22,7 +42,7 @@ from gate import ConstraintEngine
 def load_config(path: str) -> dict:
     """Load constraint_gate config from a YAML file."""
     with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+        data = _yaml_load(f)
     # Support both top-level constraint_gate key and flat gate list
     if isinstance(data, dict) and "constraint_gate" in data:
         return data["constraint_gate"]
