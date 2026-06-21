@@ -320,6 +320,103 @@ class TestTraditionalChineseGate:
         assert "1" in result.details  # "Found 1 traditional Chinese char(s)"
 
 
+# ── Transform (auto-fix) ──────────────────────────────────────────────
+
+class TestTransform:
+    def test_starts_with_transform(self):
+        gate = StartsWithGate({
+            "name": "no_hello",
+            "type": "starts_with",
+            "action": "transform",
+            "config": {"prefixes": ["好的！", "没问题！"]},
+        })
+        result = gate.transform("好的！我来帮你。")
+        assert result == "我来帮你。"
+
+    def test_ends_with_transform(self):
+        gate = EndsWithGate({
+            "name": "no_trailing",
+            "type": "ends_with",
+            "action": "transform",
+            "config": {"suffixes": ["Would you like me to"]},
+        })
+        result = gate.transform("Done. Would you like me to")
+        assert result == "Done. "
+
+    def test_regex_transform(self):
+        gate = RegexGate({
+            "name": "strip_markdown",
+            "type": "regex",
+            "action": "transform",
+            "config": {"patterns": [r"\*\*[^*]+\*\*"]},
+        })
+        result = gate.transform("This is **bold** text.")
+        assert "**" not in result
+        assert "This is  text." in result
+
+    def test_forbidden_words_transform(self):
+        gate = ForbiddenWordsGate({
+            "name": "strip_docker",
+            "type": "forbidden_words",
+            "action": "transform",
+            "config": {"words": ["docker", "Docker"]},
+        })
+        result = gate.transform("Use Docker for this.")
+        assert "Docker" not in result
+        assert "docker" not in result.lower()
+
+    def test_transform_no_match_noop(self):
+        gate = StartsWithGate({
+            "name": "no_hello",
+            "type": "starts_with",
+            "action": "transform",
+            "config": {"prefixes": ["好的！"]},
+        })
+        assert gate.transform("Clean text.") is None
+
+    def test_engine_applies_transform(self):
+        config = {
+            "enabled": True,
+            "gates": [
+                {
+                    "name": "strip_prefix",
+                    "type": "starts_with",
+                    "action": "transform",
+                    "config": {"prefixes": ["好的！"]},
+                },
+            ],
+        }
+        engine = ConstraintEngine(config)
+        result = engine.scan("好的！这是正文。")
+        assert result.transformed
+        assert result.transformed_text == "这是正文。"
+        assert len(result.violations) > 0  # Violations still recorded
+
+    def test_engine_transform_chain(self):
+        config = {
+            "enabled": True,
+            "gates": [
+                {
+                    "name": "strip_prefix",
+                    "type": "starts_with",
+                    "action": "transform",
+                    "config": {"prefixes": ["好的！"]},
+                },
+                {
+                    "name": "strip_suffix",
+                    "type": "ends_with",
+                    "action": "transform",
+                    "config": {"suffixes": ["需要我继续吗？"]},
+                },
+            ],
+        }
+        engine = ConstraintEngine(config)
+        result = engine.scan("好的！正文内容。需要我继续吗？")
+        assert result.transformed
+        assert result.transformed_text == "正文内容。"
+        assert len(result.violations) == 2
+
+
 # ── ConstraintEngine ─────────────────────────────────────────────────
 
 class TestConstraintEngine:

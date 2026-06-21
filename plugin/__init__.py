@@ -97,11 +97,17 @@ def _on_transform_llm_output(
         return injection + "\n\n" + response_text
 
     if has_transform:
-        # TODO: auto-fix for supported gate types (e.g., strip markdown)
-        # For now, log and pass through
+        # Auto-fix applied by engine during scan — use the transformed text
+        if result.transformed:
+            logger.info(
+                "Constraint Gate TRANSFORMED %d violation(s) in session=%s",
+                len(result.violations), session_id,
+            )
+            return result.transformed_text
+        # Transforms requested but none could be applied — fall through to warn
         logger.info(
-            "Constraint Gate transform requested for %d violation(s) in session=%s",
-            len(result.violations), session_id,
+            "Constraint Gate transform requested but not applicable for %d violation(s)",
+            len(result.violations),
         )
 
     # Warn action: log only, don't modify the user-visible response.

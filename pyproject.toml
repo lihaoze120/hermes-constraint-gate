@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "hermes-constraint-gate"
-version = "0.9.3"
+version = "0.10.0"
 description = "Pre-response constraint enforcement for Hermes Agent — 7 pluggable gate types"
 readme = "README.md"
 license = {text = "MIT"}

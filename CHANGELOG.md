@@ -2,6 +2,15 @@
 
 All notable changes to the constraint-gate plugin.
 
+## [0.10.0] — 2026-06-21
+
+### Added
+- `transform` action implemented — auto-fix for starts_with, ends_with, regex, forbidden_words
+- RegexGate `replacement` config — use `\1` to keep captured text while stripping markers
+- GitHub issue templates (bug report, feature request) + PR template
+- 7 new tests for transform (48 total)
+- Updated demo with transform examples
+
 ## [0.9.3] — 2026-06-21
 
 ### Added

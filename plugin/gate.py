@@ -162,6 +162,14 @@ class Gate(ABC):
         """Return a Violation if the constraint is broken, else None."""
         ...
 
+    def transform(self, response_text: str) -> Optional[str]:
+        """Attempt to auto-fix the violation. Returns transformed text, or None if unfixable.
+
+        Override in subclasses that support ``action: transform``.
+        Default: no-op — most gates can only warn/block.
+        """
+        return None
+
 
 # ── Built-in gate implementations ───────────────────────────────────
 
@@ -250,6 +258,25 @@ class RegexGate(Gate):
                 logger.warning("Invalid regex in gate '%s': %s — %s", self.name, pat, e)
         return None
 
+    def transform(self, response_text: str) -> Optional[str]:
+        """Strip matched regex patterns from the response.
+
+        Use ``replacement`` in config to control what replaces matches:
+        - unset: empty string (full removal)
+        - ``\\1``: keep first capture group (useful for markdown stripping)
+        """
+        cfg = self.config.get("config", {})
+        pattern_str = cfg.get("pattern", "")
+        patterns = cfg.get("patterns", [pattern_str] if pattern_str else [])
+        replacement = cfg.get("replacement", "")
+        result = response_text
+        for pat in patterns:
+            try:
+                result = re.sub(pat, replacement, result, flags=re.MULTILINE | re.UNICODE)
+            except re.error:
+                pass
+        return result if result != response_text else None
+
 
 class ForbiddenWordsGate(Gate):
     """Check for forbidden words/phrases (case-insensitive)."""
@@ -270,6 +297,17 @@ class ForbiddenWordsGate(Gate):
                     action=self.action,
                 )
         return None
+
+    def transform(self, response_text: str) -> Optional[str]:
+        """Strip all forbidden words from the response (case-insensitive)."""
+        cfg = self.config.get("config", {})
+        words = cfg.get("words", [])
+        result = response_text
+        for word in words:
+            # Case-insensitive replace
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            result = pattern.sub("", result)
+        return result if result != response_text else None
 
 
 class LengthGate(Gate):
@@ -325,6 +363,17 @@ class StartsWithGate(Gate):
                 )
         return None
 
+    def transform(self, response_text: str) -> Optional[str]:
+        """Strip the banned prefix from the response text."""
+        cfg = self.config.get("config", {})
+        prefixes = cfg.get("prefixes", [])
+        stripped = response_text.lstrip()
+        for prefix in prefixes:
+            if stripped.startswith(prefix):
+                leading = response_text[: len(response_text) - len(stripped)]
+                return leading + stripped[len(prefix):]
+        return None
+
 
 class EndsWithGate(Gate):
     """Ensure response does not end with prohibited suffixes."""
@@ -342,6 +391,17 @@ class EndsWithGate(Gate):
                     details=f"Response ends with: '{suffix}'",
                     action=self.action,
                 )
+        return None
+
+    def transform(self, response_text: str) -> Optional[str]:
+        """Strip the banned suffix from the response text."""
+        cfg = self.config.get("config", {})
+        suffixes = cfg.get("suffixes", [])
+        stripped = response_text.rstrip()
+        for suffix in suffixes:
+            if stripped.endswith(suffix):
+                trailing = response_text[len(stripped):]
+                return stripped[: -len(suffix)] + trailing
         return None
 
 
@@ -500,21 +560,35 @@ class ConstraintEngine:
                     logger.error("Failed to create gate '%s': %s", gc.get("name", "?"), e)
 
     def scan(self, response_text: str) -> ScanResult:
-        """Run all enabled gates against *response_text*."""
+        """Run all enabled gates against *response_text*.
+
+        For violations with action=transform, calls gate.transform()
+        to auto-fix the response. Transforms are applied in gate order.
+        """
         if not self.enabled or not self.gates:
             return ScanResult(passed=True)
 
         violations: List[Violation] = []
+        gate_violation_map: dict = {}  # gate -> violation for transform lookup
+        current_text = response_text
 
         for gate in self.gates:
             try:
-                violation = gate.check(response_text)
+                violation = gate.check(current_text)
                 if violation:
                     violations.append(violation)
+                    gate_violation_map[id(gate)] = violation
+
+                    # Apply transform immediately if action=transform
+                    if violation.action == "transform":
+                        transformed = gate.transform(current_text)
+                        if transformed is not None:
+                            current_text = transformed
             except Exception as e:
                 logger.warning("Gate '%s' raised during check: %s", gate.name, e)
 
         passed = len(violations) == 0
+        transformed = current_text != response_text
 
         if violations and self.log_violations and self.log_path:
             self._log_violations(violations)
@@ -522,8 +596,8 @@ class ConstraintEngine:
         return ScanResult(
             passed=passed,
             violations=violations,
-            transformed=False,
-            transformed_text=response_text,
+            transformed=transformed,
+            transformed_text=current_text if transformed else response_text,
         )
 
     def _log_violations(self, violations: List[Violation]) -> None:

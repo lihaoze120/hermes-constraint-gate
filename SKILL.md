@@ -1,7 +1,7 @@
 ---
 name: constraint-gate
 description: Use BEFORE EVERY response. A universal pre-response constraint scanner — configurable gates enforce language ratio, banned patterns, interaction style, and technical vetos. Backed by the constraint-gate plugin for code-level enforcement.
-version: 0.9.3
+version: 0.10.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -44,7 +44,7 @@ Composite: `Japanese-Kana` (Hiragana + Katakana)
 |--------|--------|
 | `warn` | Log violation, inject note into history for next-turn self-correction |
 | `block` | Same as warn + prepend violation report to user-visible response |
-| `transform` | Auto-fix (planned for v1.0 — not yet implemented) |
+| `transform` | Auto-fix — strip banned patterns, clean the response |
 
 ---
 
