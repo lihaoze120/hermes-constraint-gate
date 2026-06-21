@@ -1,0 +1,70 @@
+# Universal constraint-gate configuration example
+constraint_gate:
+  enabled: true
+  log_violations: true
+  log_path: ~/.hermes/constraint-gate.log
+  gates:
+    # ── Enforce primary language ──
+    - name: primary_language
+      description: "Ensure primary script dominates the response"
+      enabled: true
+      type: language_ratio
+      action: warn
+      config:
+        primary_script: Latin
+        min_ratio: 0.70
+
+    # ── Block markdown in plain-text chat ──
+    - name: no_markdown
+      description: "No markdown formatting"
+      enabled: true
+      type: regex
+      action: block
+      config:
+        patterns:
+          - "^#{1,6}\\s"
+          - "\\*\\*[^*]+\\*\\*"
+          - "```[\\s\\S]*?```"
+
+    # ── No formulaic openings ──
+    - name: no_formal_openings
+      description: "Skip polite openings, get to the point"
+      enabled: true
+      type: starts_with
+      action: block
+      config:
+        prefixes:
+          - "Sure! Let me"
+          - "I'd be happy to"
+          - "Of course!"
+
+    # ── No trailing filler ──
+    - name: no_trailing
+      description: "Don't end with open-ended questions"
+      enabled: true
+      type: ends_with
+      action: block
+      config:
+        suffixes:
+          - "Let me know if"
+          - "Would you like me to"
+          - "Feel free to ask"
+
+    # ── Ban specific suggestions ──
+    - name: no_browser_solutions
+      description: "User prefers native apps over web"
+      enabled: true
+      type: regex
+      action: block
+      config:
+        patterns:
+          - "(?:open|use|try).{0,10}(?:browser|web app)"
+
+    # ── Keep responses concise ──
+    - name: keep_concise
+      description: "Responses should be under 30 lines"
+      enabled: true
+      type: length
+      action: warn
+      config:
+        max_lines: 30

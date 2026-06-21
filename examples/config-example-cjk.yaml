@@ -1,0 +1,101 @@
+# CJK-specific constraint-gate configuration example
+# For Chinese/Japanese/Korean users with script-mixing concerns
+constraint_gate:
+  enabled: true
+  log_violations: true
+  log_path: ~/.hermes/constraint-gate.log
+  gates:
+    # ── Language: limit Japanese kana ──
+    # Use foreign_script mode because Han (kanji) is shared with Chinese.
+    # primary_script: Han would let Japanese sentences pass.
+    - name: kana_limit
+      description: "Japanese kana must be <= 30% of meaningful characters"
+      enabled: true
+      type: language_ratio
+      action: block
+      config:
+        foreign_script: Japanese-Kana
+        max_ratio: 0.30
+
+    # ── Language: ensure Han minimum ──
+    - name: han_minimum
+      description: "Han (CJK ideographs) must be >= 15%"
+      enabled: true
+      type: language_ratio
+      action: warn
+      config:
+        primary_script: Han
+        min_ratio: 0.15
+
+    # ── Simplified Chinese only ──
+    - name: simplified_only
+      description: "No traditional Chinese characters"
+      enabled: true
+      type: traditional_chinese
+      action: block
+      config: {}
+
+    # ── No formulaic Chinese openings ──
+    - name: no_pleasantry_opening
+      description: "Skip polite formulas, get to the point"
+      enabled: true
+      type: starts_with
+      action: block
+      config:
+        prefixes:
+          - "好的！"
+          - "没问题！"
+          - "我来帮你"
+          - "让我来"
+
+    # ── No trailing pleasantries ──
+    - name: no_trailing
+      description: "Don't end with open questions"
+      enabled: true
+      type: ends_with
+      action: block
+      config:
+        suffixes:
+          - "需要我继续吗？"
+          - "还有什么要帮忙"
+
+    # ── No browser solutions ──
+    - name: no_browser
+      description: "User prefers native desktop over web"
+      enabled: true
+      type: regex
+      action: block
+      config:
+        patterns:
+          - "(?:用|打开|访问).{0,5}(?:浏览器|browser|网页)"
+
+    # ── No code-generated art ──
+    - name: no_code_art
+      description: "No matplotlib/SVG/ASCII character art"
+      enabled: true
+      type: regex
+      action: block
+      config:
+        patterns:
+          - "(?:matplotlib|SVG|ASCII).{0,10}(?:画|生成|角色|二次元)"
+
+    # ── No markdown in terminal chat ──
+    - name: no_markdown
+      description: "No markdown formatting"
+      enabled: true
+      type: regex
+      action: block
+      config:
+        patterns:
+          - "^#{1,6}\\s"
+          - "\\*\\*[^*]+\\*\\*"
+          - "```[\\s\\S]*?```"
+
+    # ── Keep concise ──
+    - name: keep_concise
+      description: "Keep responses under 30 lines"
+      enabled: true
+      type: length
+      action: warn
+      config:
+        max_lines: 30
