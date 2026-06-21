@@ -71,6 +71,11 @@ hermes restart
 
 That's it. The plugin now scans every assistant response before delivery.
 
+Try the demo:
+```bash
+python demo.py
+```
+
 ---
 
 ## Why Constraint Gate?
