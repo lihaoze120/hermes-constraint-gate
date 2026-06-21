@@ -1,5 +1,10 @@
 # Constraint Gate — Pre-Response Constraint Scanner for Hermes Agent
 
+[![Version](https://img.shields.io/badge/version-0.9.2-blue)](https://github.com/lihaoze120/hermes-constraint-gate/releases)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![Hermes](https://img.shields.io/badge/Hermes-Plugin-orange)](https://github.com/NousResearch/hermes-agent)
+
 A two-layer constraint enforcement system for [Hermes Agent](https://github.com/NousResearch/hermes-agent):
 - **Skill** — mental pre-response checklist the assistant self-enforces
 - **Plugin** — hooks into `transform_llm_output` for programmatic enforcement
