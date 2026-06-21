@@ -38,92 +38,179 @@ Assistant generates response
           → Next turn: assistant reads its own annotated message, self-corrects
 ```
 
-## Gate Types (7)
+Two layers, same rules:
+- **Skill** = assistant checks itself before sending (proactive)
+- **Plugin** = code scans after generation, injects corrections (reactive catch-all)
 
-| Type | What it checks | Example |
-|------|---------------|---------|
-| `language_ratio` | Script ratio in text | Limit non-English scripts, enforce primary language |
-| `regex` | Regex pattern match | Block markdown, code blocks, specific patterns |
-| `forbidden_words` | Case-insensitive word match | Ban "docker", "browser", "sign up" |
-| `length` | Char / line count | Max 30 lines, min 10 chars |
-| `starts_with` | Response prefix | No "Sure!" / "Let me" openings |
-| `ends_with` | Response suffix | No "Let me know if..." endings |
-| `traditional_chinese` | Traditional Chinese chars | Block traditional characters in simplified output |
+---
 
-### Gate Config Reference
+## Gate Types
 
+### `language_ratio` — Control mixed-language output
+
+Counts characters by Unicode script and enforces ratio limits. Two modes:
+
+**Mode 1: Enforce primary script** — "at least 80% Latin"
 ```yaml
-# language_ratio — enforce primary script or limit foreign script
 - name: enforce_english
   type: language_ratio
   action: warn
   config:
     primary_script: Latin
     min_ratio: 0.8
+```
 
-# regex — single or multiple patterns
+**Mode 2: Limit foreign script** — "no more than 30% Japanese kana"
+```yaml
+- name: kana_limit
+  type: language_ratio
+  action: block
+  config:
+    foreign_script: Japanese-Kana
+    max_ratio: 0.30
+```
+
+Supported scripts: `Han`, `Hiragana`, `Katakana`, `Japanese-Kana`, `Hangul`, `Latin`, `Cyrillic`, `Arabic`, `Devanagari`
+
+> **CJK note:** Han characters are shared by Chinese, Japanese, and Korean. Use `foreign_script: Japanese-Kana` (Hiragana+Katakana) to catch Japanese output — `primary_script: Han` won't distinguish them.
+
+---
+
+### `regex` — Block unwanted patterns
+
+Single pattern or multiple. Matches against the entire response with `re.MULTILINE`.
+
+```yaml
 - name: no_markdown
   type: regex
   action: block
   config:
     patterns:
-      - "\*\*[^*]+\*\*"
-      - "```[\s\S]*?```"
+      - "\*\*[^*]+\*\*"        # bold
+      - "```[\s\S]*?```"       # code blocks
+      - "^#{1,6}\s"            # headings
+```
 
-# forbidden_words — case-insensitive
-- name: no_docker
+Use cases: block markdown in plain-text chat, ban specific URL patterns, catch API key suggestions, prevent code-generated art mentions.
+
+---
+
+### `forbidden_words` — Simple word blacklist
+
+Case-insensitive substring matching. Good for banning terms you never want suggested.
+
+```yaml
+- name: no_cloud_suggestions
   type: forbidden_words
-  action: warn
+  action: block
   config:
-    words: ["docker", "kubernetes", "containerize"]
+    words: ["docker", "kubernetes", "terraform", "AWS"]
+```
 
-# length — char or line limits
+---
+
+### `length` — Cap response size
+
+Char count, line count, or both.
+
+```yaml
 - name: keep_concise
   type: length
   action: warn
   config:
     max_lines: 25
     max_chars: 2000
+    min_chars: 10      # prevent empty/lazy responses
+```
 
-# starts_with / ends_with — opening/closing patterns
-- name: no_formal_opening
+---
+
+### `starts_with` / `ends_with` — Control openings and closings
+
+Strip formulaic filler from responses. `starts_with` checks after `lstrip()`, `ends_with` checks after `rstrip()`.
+
+```yaml
+- name: no_pleasantries
   type: starts_with
   action: block
   config:
-    prefixes: ["Dear", "Hello", "Greetings"]
+    prefixes: ["Sure!", "Of course!", "I'd be happy to"]
 
-- name: no_trailing_questions
+- name: no_trailing
   type: ends_with
   action: block
   config:
-    suffixes: ["Let me know if", "Would you like me to"]
+    suffixes: ["Let me know if", "Would you like me to", "Feel free to ask"]
 ```
 
-## Configuration
+---
 
-See `examples/` for complete config files:
+### `traditional_chinese` — Simplified Chinese enforcement
+
+Detects traditional Chinese characters using a built-in reference set of 200+ common traditional→simplified pairs. Extend with `extra_chars`.
+
+```yaml
+- name: simplified_only
+  type: traditional_chinese
+  action: block
+  config:
+    extra_chars: []   # optional: add more traditional chars
+```
+
+---
+
+## Actions
+
+| Action | Effect |
+|--------|--------|
+| `warn` | Log the violation + inject a note the assistant sees next turn (self-correction) |
+| `block` | Same as warn + prepend violation report to the user-visible response |
+| `transform` | Auto-fix the response *(planned for v1.0)* |
+
+---
+
+## Configuration Files
+
+See `examples/` for complete, ready-to-use config files:
 - `config-example.yaml` — universal, English-primary
-- `config-example-cjk.yaml` — CJK (Chinese/Japanese) specific
+- `config-example-cjk.yaml` — CJK (Chinese/Japanese) specific with kana limits, traditional char detection
+
+---
 
 ## Extending
 
-Register custom gate types:
+Register custom gate types without modifying the plugin:
 
 ```python
 from gate import Gate, Violation, register_gate_type
 
 class SentimentGate(Gate):
+    """Block negative-sentiment responses."""
     def check(self, text):
-        if "frustrated" in text.lower():
-            return Violation(
-                gate_name=self.name,
-                description="Negative sentiment detected",
-                action="warn",
-            )
+        negative = self.config.get("config", {}).get("words", [])
+        for word in negative:
+            if word.lower() in text.lower():
+                return Violation(
+                    gate_name=self.name,
+                    description="Negative sentiment detected",
+                    details=f"Found: {word}",
+                    action=self.action,
+                )
         return None
 
 register_gate_type("sentiment", SentimentGate)
 ```
+
+Then use it in config:
+```yaml
+- name: no_negativity
+  type: sentiment
+  action: block
+  config:
+    words: ["frustrated", "annoying", "terrible"]
+```
+
+---
 
 ## License
 
