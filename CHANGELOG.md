@@ -2,6 +2,15 @@
 
 All notable changes to the constraint-gate plugin.
 
+## [Unreleased]
+
+### Added
+- 41 unit tests covering all 7 gate types + engine + edge cases
+- GitHub Actions CI (Python 3.9–3.12)
+- `pyproject.toml` — pip-installable package
+- CONTRIBUTING.md — contribution guide
+- CI badge on README
+
 ## [0.9.2] — 2026-06-21
 
 ### Changed
