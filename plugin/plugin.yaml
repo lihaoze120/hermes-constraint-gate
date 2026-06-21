@@ -1,5 +1,5 @@
 name: constraint-gate
-version: 1.0.0
+version: 0.9.0
 description: "Pre-response constraint scanner — enforces configurable rules (language ratio, banned patterns, interaction style) on every assistant response before delivery. Plugs into the transform_llm_output hook."
 author: "Hermes Agent (universal plugin)"
 hooks:

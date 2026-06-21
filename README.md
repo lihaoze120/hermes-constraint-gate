@@ -8,6 +8,8 @@ Define your rules once in `config.yaml`. The assistant checks them before every 
 
 ## Quick Start
 
+> **Status: v0.9.0** — stable and usable, `transform` action planned for v1.0.
+
 ```bash
 # 1. Install plugin
 cp -r plugin/ ~/.hermes/plugins/constraint-gate/
