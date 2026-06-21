@@ -6,14 +6,14 @@ import os
 import json
 import tempfile
 
-CLI = [sys.executable, "cli.py"]
+CLI = [sys.executable, "cg_cli.py"]
 
 
 def _run(*args, stdin=None, workdir=None):
     """Run CLI and return (stdout, stderr, exit_code)."""
     cwd = workdir or os.path.dirname(os.path.dirname(__file__))
     result = subprocess.run(
-        [sys.executable, os.path.join(cwd, "cli.py")] + list(args),
+        [sys.executable, os.path.join(cwd, "cg_cli.py")] + list(args),
         capture_output=True,
         text=True,
         input=stdin,

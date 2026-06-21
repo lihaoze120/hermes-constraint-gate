@@ -29,7 +29,7 @@ classifiers = [
 test = ["pytest>=7"]
 
 [project.scripts]
-cg = "cli:main"
+cg = "cg_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["plugin*"]
