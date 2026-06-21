@@ -50,6 +50,28 @@ constraint_gate:
           - "\\*\\*[^*]+\\*\\*"
           - "```[\\s\\S]*?```"
 
+    # ── No trailing pleasantries ──
+    - name: no_trailing_pleasantry
+      description: "Don't end with '需要我继续吗？' or similar"
+      enabled: true
+      type: ends_with
+      action: block
+      config:
+        suffixes:
+          - "需要我继续吗？"
+          - "还有什么要帮忙的吗？"
+          - "还有什么要帮忙"
+          - "Would you like me to"
+          - "Let me know if"
+
+    # ── Traditional Chinese → Simplified only ──
+    - name: simplified_only
+      description: "No traditional Chinese characters — simplified only"
+      enabled: true
+      type: traditional_chinese
+      action: block
+      config: {}
+
     # ── Keep responses concise ──
     - name: no_prose_walls
       description: "Keep responses under 30 lines"

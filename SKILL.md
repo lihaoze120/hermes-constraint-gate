@@ -1,7 +1,7 @@
 ---
 name: constraint-gate
 description: Use BEFORE EVERY response. A universal pre-response constraint scanner — configurable gates enforce language ratio, banned patterns, interaction style, and technical vetos. Backed by the constraint-gate plugin for code-level enforcement.
-version: 0.9.0
+version: 0.9.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -87,6 +87,8 @@ constraint_gate:
 | `forbidden_words` | Case-insensitive word match | `words` (list) |
 | `length` | Char/line count limits | `max_chars`, `min_chars`, `max_lines` |
 | `starts_with` | Response prefix check | `prefixes` (list) |
+| `ends_with` | Response suffix check | `suffixes` (list) |
+| `traditional_chinese` | Detect traditional Chinese characters | `extra_chars` (list, optional) |
 
 ### Script names for `language_ratio`
 

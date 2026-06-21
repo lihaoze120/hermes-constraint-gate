@@ -8,7 +8,7 @@ Define your rules once in `config.yaml`. The assistant checks them before every 
 
 ## Quick Start
 
-> **Status: v0.9.0** — stable and usable, `transform` action planned for v1.0.
+> **Status: v0.9.1** — 7 gate types, stable and usable. `transform` action planned for v1.0.
 
 ```bash
 # 1. Install plugin
@@ -42,6 +42,8 @@ Assistant generates response
 | `forbidden_words` | Case-insensitive word match | Ban "docker", "browser" |
 | `length` | Char / line count | Max 30 lines per response |
 | `starts_with` | Response prefix | No "好的！" openings |
+| `ends_with` | Response suffix | No "需要我继续吗？" endings |
+| `traditional_chinese` | Character check | Block traditional Chinese chars |
 
 ### Language Ratio — CJK Special Handling
 
