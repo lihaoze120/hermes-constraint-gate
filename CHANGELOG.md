@@ -2,7 +2,7 @@
 
 All notable changes to the constraint-gate plugin.
 
-## [Unreleased]
+## [0.9.3] — 2026-06-21
 
 ### Added
 - 41 unit tests covering all 7 gate types + engine + edge cases
