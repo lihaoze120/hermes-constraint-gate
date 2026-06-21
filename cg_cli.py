@@ -1,10 +1,10 @@
 """CLI for constraint-gate — scan text without Hermes.
 
 Usage:
-  gate scan "text to check" --config rules.yaml
-  echo "text" | gate scan -
-  gate scan --file response.txt --config rules.yaml
-  gate scan "text" --config rules.yaml --format json
+  cg scan "text to check" --config rules.yaml
+  echo "text" | cg scan -
+  cg scan --file response.txt --config rules.yaml
+  cg scan "text" --config rules.yaml --format json
 """
 
 import argparse
@@ -14,6 +14,13 @@ import os
 from pathlib import Path
 
 import yaml
+
+# ── Version ───────────────────────────────────────────────────────────
+
+__version__ = "0.11.0"
+
+
+# ── YAML loading (robust against broken PyYAML installs) ─────────────
 
 # pyyaml may be installed without __init__.py (broken partial install);
 # fall back to the Loader class directly.
@@ -35,64 +42,124 @@ def _yaml_load(stream):
         finally:
             loader.dispose()
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "plugin"))
-from gate import ConstraintEngine
+
+# ── Import ConstraintEngine from the plugin directory ─────────────────
+
+_plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plugin")
+if _plugin_dir not in sys.path:
+    sys.path.insert(0, _plugin_dir)
+
+try:
+    from gate import ConstraintEngine
+except ImportError as e:
+    sys.exit(
+        f"Fatal: cannot import ConstraintEngine from '{_plugin_dir}'.\n"
+        f"  Ensure plugin/gate.py exists and is readable.\n"
+        f"  Import error: {e}"
+    )
+
+
+# ── Config loading ────────────────────────────────────────────────────
 
 
 def load_config(path: str) -> dict:
-    """Load constraint_gate config from a YAML file."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = _yaml_load(f)
+    """Load constraint_gate config from a YAML file.
+
+    Returns a dict suitable for passing to ConstraintEngine().
+    Handles missing files, empty files, invalid YAML, and
+    permission errors gracefully.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Config file not found: {path}")
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = f.read()
+    except PermissionError:
+        raise PermissionError(f"Cannot read config file (permission denied): {path}")
+    except (UnicodeDecodeError, OSError) as e:
+        raise OSError(f"Cannot read config file '{path}': {e}")
+
+    # Empty or whitespace-only config — treat as no gates
+    if not raw.strip():
+        return {"gates": []}
+
+    try:
+        data = _yaml_load(raw)
+    except Exception as e:
+        raise ValueError(f"Invalid YAML in config '{path}': {e}")
+
+    # None means an empty YAML document
+    if data is None:
+        return {"gates": []}
+
     # Support both top-level constraint_gate key and flat gate list
     if isinstance(data, dict) and "constraint_gate" in data:
         return data["constraint_gate"]
     if isinstance(data, list):
         return {"gates": data}
-    return data
+    if isinstance(data, dict):
+        return data
+
+    raise ValueError(
+        f"Unexpected config structure in '{path}': "
+        f"expected a dict or list, got {type(data).__name__}"
+    )
+
+
+# ── CLI ───────────────────────────────────────────────────────────────
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="gate",
+        prog="cg",
         description="Scan text against constraint rules.",
     )
+    parser.add_argument(
+        "--version", "-V", action="version",
+        version=f"cg {__version__}",
+        help="Show version and exit.",
+    )
+
     sub = parser.add_subparsers(dest="command", required=True)
 
     scan = sub.add_parser("scan", help="Scan text against constraint rules")
     scan.add_argument(
         "text", nargs="?", default=None,
-        help="Text to scan. Use '-' to read from stdin."
+        help="Text to scan. Use '-' to read from stdin.",
     )
     scan.add_argument(
         "--file", "-f", default=None,
-        help="Read text from a file instead of argument."
+        help="Read text from a file instead of argument.",
     )
     scan.add_argument(
         "--config", "-c", default="constraint_gate.yaml",
-        help="Path to YAML config file (default: constraint_gate.yaml)."
+        help="Path to YAML config file (default: constraint_gate.yaml).",
     )
     scan.add_argument(
         "--format", "-F", choices=["text", "json"], default="text",
-        help="Output format (default: text)."
+        help="Output format (default: text).",
     )
     scan.add_argument(
         "--quiet", "-q", action="store_true",
-        help="Only output transformed text, no scan report."
+        help="Only output transformed text, no scan report.",
     )
 
     list_cmd = sub.add_parser("list-gates", help="List gates from config")
     list_cmd.add_argument(
         "--config", "-c", default="constraint_gate.yaml",
-        help="Path to YAML config file."
+        help="Path to YAML config file.",
     )
 
     args = parser.parse_args()
 
     if args.command == "list-gates":
-        if not os.path.exists(args.config):
-            print(f"Config not found: {args.config}")
+        try:
+            config = load_config(args.config)
+        except (FileNotFoundError, PermissionError, OSError, ValueError) as e:
+            print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-        config = load_config(args.config)
+
         engine = ConstraintEngine(config)
         print(f"Config: {args.config}")
         print(f"Enabled: {engine.enabled}")
@@ -107,21 +174,42 @@ def main():
         if args.text == "-":
             text = sys.stdin.read()
         elif args.file:
-            with open(args.file, "r", encoding="utf-8") as f:
-                text = f.read()
+            try:
+                with open(args.file, "r", encoding="utf-8") as f:
+                    text = f.read()
+            except FileNotFoundError:
+                print(f"Error: input file not found: {args.file}", file=sys.stderr)
+                sys.exit(1)
+            except PermissionError:
+                print(f"Error: cannot read input file (permission denied): {args.file}", file=sys.stderr)
+                sys.exit(1)
+            except (UnicodeDecodeError, OSError) as e:
+                print(f"Error: cannot read input file '{args.file}': {e}", file=sys.stderr)
+                sys.exit(1)
         elif args.text:
             text = args.text
         else:
-            print("Error: no text provided. Use 'gate scan \"text\"' or 'gate scan -' for stdin.", file=sys.stderr)
+            print(
+                "Error: no text provided. Use 'cg scan \"text\"', "
+                "'cg scan --file <path>', or 'cg scan -' for stdin.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         # Load config
-        if not os.path.exists(args.config):
+        try:
+            config = load_config(args.config)
+        except FileNotFoundError:
             print(f"Error: config file not found: {args.config}", file=sys.stderr)
-            print("Create one with: gate init", file=sys.stderr)
+            print("  Create one manually or use an example from the examples/ directory.", file=sys.stderr)
+            sys.exit(1)
+        except PermissionError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        except (OSError, ValueError) as e:
+            print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
-        config = load_config(args.config)
         engine = ConstraintEngine(config)
 
         # Scan

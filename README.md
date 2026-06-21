@@ -2,7 +2,7 @@
 
 *Never let your AI assistant forget the rules again.*
 
-[![Version](https://img.shields.io/badge/version-0.11.0-blue)](https://github.com/lihaoze120/hermes-constraint-gate/releases)
+[![Version](https://img.shields.io/badge/version-0.11.1-blue)](https://github.com/lihaoze120/hermes-constraint-gate/releases)
 [![CI](https://github.com/lihaoze120/hermes-constraint-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/lihaoze120/hermes-constraint-gate/actions)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)

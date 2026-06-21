@@ -1,7 +1,7 @@
 ---
 name: constraint-gate
 description: Use BEFORE EVERY response. A universal pre-response constraint scanner — configurable gates enforce language ratio, banned patterns, interaction style, and technical vetos. Backed by the constraint-gate plugin for code-level enforcement.
-version: 0.10.0
+version: 0.11.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

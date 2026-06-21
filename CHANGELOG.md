@@ -2,6 +2,11 @@
 
 All notable changes to the constraint-gate plugin.
 
+## [0.11.1] — 2026-06-21
+
+### Changed
+- Optimized cg_cli.py (by Claude Code): fixed sys.path import hack, added --version, improved error handling, load_config now handles empty/broken YAML gracefully
+
 ## [0.11.0] — 2026-06-21
 
 ### Added
