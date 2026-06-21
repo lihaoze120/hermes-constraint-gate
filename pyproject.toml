@@ -34,6 +34,9 @@ cg = "cg_cli:main"
 [tool.setuptools.packages.find]
 include = ["plugin*"]
 
+[tool.setuptools]
+py-modules = ["cg_cli"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
