@@ -2,6 +2,15 @@
 
 All notable changes to the constraint-gate plugin.
 
+## [0.11.0] — 2026-06-21
+
+### Added
+- Standalone CLI (`gate scan`, `gate list-gates`) — no Hermes dependency
+- `--format json`, `--quiet`, `--file`, stdin support
+- `pyyaml` dependency, `console_scripts` entry point
+- 9 CLI tests (57 total)
+- CLI usage in README Quick Start
+
 ## [0.10.0] — 2026-06-21
 
 ### Added

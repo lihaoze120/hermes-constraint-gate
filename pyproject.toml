@@ -4,12 +4,15 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "hermes-constraint-gate"
-version = "0.10.0"
-description = "Pre-response constraint enforcement for Hermes Agent — 7 pluggable gate types"
+version = "0.11.0"
+description = "Pre-response constraint enforcement for Hermes Agent — 7 pluggable gate types. CLI included."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-keywords = ["hermes", "plugin", "constraints", "llm", "quality-gate"]
+dependencies = [
+    "pyyaml>=6",
+]
+keywords = ["hermes", "plugin", "constraints", "llm", "quality-gate", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -24,6 +27,9 @@ classifiers = [
 
 [project.optional-dependencies]
 test = ["pytest>=7"]
+
+[project.scripts]
+gate = "cli:main"
 
 [tool.setuptools.packages.find]
 include = ["plugin*"]
