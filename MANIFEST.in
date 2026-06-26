@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include SKILL.md
+include demo.py
+recursive-include examples *.yaml
+recursive-include plugin *.py
+recursive-include plugin *.yaml
+recursive-include tests *.py
