@@ -23,21 +23,21 @@ import logging
 from typing import Any, Dict, Optional
 
 try:
-    from .gate import (
+    from .gates.engine import (
         ConstraintEngine,
-        Violation,
         get_engine,
         reset_engine,
         load_constraint_config,
     )
+    from .gates.base import Violation
 except ImportError:
-    from gate import (
+    from plugin.gates.engine import (
         ConstraintEngine,
-        Violation,
         get_engine,
         reset_engine,
         load_constraint_config,
     )
+    from plugin.gates.base import Violation
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,6 @@ def _on_transform_llm_output(
     has_transform = any(v.action == "transform" for v in result.violations)
 
     if has_block:
-        # Inject violation report at the top so the assistant sees it next turn
         injection = _build_injection(result.violations)
         logger.info(
             "Constraint Gate BLOCKED %d violation(s) in session=%s model=%s",
@@ -97,22 +96,17 @@ def _on_transform_llm_output(
         return injection + "\n\n" + response_text
 
     if has_transform:
-        # Auto-fix applied by engine during scan — use the transformed text
         if result.transformed:
             logger.info(
                 "Constraint Gate TRANSFORMED %d violation(s) in session=%s",
                 len(result.violations), session_id,
             )
             return result.transformed_text
-        # Transforms requested but none could be applied — fall through to warn
         logger.info(
             "Constraint Gate transform requested but not applicable for %d violation(s)",
             len(result.violations),
         )
 
-    # Warn action: log only, don't modify the user-visible response.
-    # But still inject so the assistant sees it on next turn.
-    # Use a subtle injection that the user barely notices.
     if result.violations:
         injection = _build_injection(result.violations)
         logger.info(

@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plugin"))
 
 import pytest
-from gate import (
+from plugin.gates import (
     ConstraintEngine,
     LanguageRatioGate,
     RegexGate,
@@ -518,13 +518,13 @@ class TestConstraintEngine:
     def test_reset_engine(self):
         config = {"enabled": False, "gates": []}
         engine1 = ConstraintEngine(config)
-        from gate import get_engine
+        from plugin.gates.engine import get_engine
         # Force singleton
-        import gate
-        gate._engine = engine1
+        import plugin.gates.engine as eng
+        eng._engine = engine1
         assert get_engine() is engine1
         reset_engine()
-        assert gate._engine is None
+        assert eng._engine is None
 
 
 # ── Edge cases ────────────────────────────────────────────────────────

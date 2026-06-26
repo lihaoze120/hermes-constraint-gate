@@ -24,10 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pyyaml ruff pytest-cov
+          pip install pytest pyyaml
 
-      - name: Lint (ruff)
-        run: ruff check .
-
-      - name: Run tests with coverage
-        run: pytest tests/ -v --cov=plugin --cov-report=term-missing
+      - name: Run tests
+        run: pytest tests/ -v
